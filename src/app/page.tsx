@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import { Device } from 'mediasoup-client';
 import { Transport, Producer, Consumer, RtpCapabilities, DtlsParameters, RtpParameters } from 'mediasoup-client/types';
 import { useSearchParams } from 'next/navigation';
+import { AudioPlayer } from '@/components/AudioPlayer';
 
 // --- TYPE DEFINITIONS ---
 interface VideoState {
@@ -115,6 +116,7 @@ export default function MeetPage() {
   const [username, setUsername] = useState('');
   const [roomId, setRoomId] = useState('');
   const [videos, setVideos] = useState<VideoState[]>([]);
+  const [audioStreams, setAudioStreams] = useState<MediaStream[]>([]);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoPaused, setIsVideoPaused] = useState(false);
 
@@ -175,11 +177,15 @@ export default function MeetPage() {
             consumersRef.current.set(consumer.id, consumer);
             console.log("[CONSUME] Consumer created:", consumer);
 
-            if (consumer.kind === 'video') {
-              const { track } = consumer;
-              const remoteStream = new MediaStream([track]);
-              addParticipantVideo(producerUsername, consumer.id, remoteStream);
-            }
+            const { track } = consumer;
+    if (consumer.kind === 'video') {
+        const remoteStream = new MediaStream([track]);
+        addParticipantVideo(producerUsername, consumer.id, remoteStream);
+    } else if (consumer.kind === 'audio') {
+      
+        const remoteAudioStream = new MediaStream([track]);
+        setAudioStreams(prev => [...prev, remoteAudioStream]);
+    }
 
             console.log("[CONSUME]  Emitting 'consumer-resume' for consumerId:", consumer.id);
             socket.emit('consumer-resume', { consumerId: consumer.id });
@@ -341,6 +347,12 @@ export default function MeetPage() {
     <div className="flex flex-col h-screen bg-gray-900 text-white">
       <header className="p-4 text-xl font-bold text-center">Room: {roomId}</header>
       <VideoGrid videos={videos} localUsername={username} />
+
+     
+      {audioStreams.map((stream) => (
+        <AudioPlayer key={stream.id} stream={stream} />
+      ))}
+
       <Controls
         onToggleAudio={handleToggleAudio}
         onToggleVideo={handleToggleVideo}
@@ -349,5 +361,5 @@ export default function MeetPage() {
         isVideoPaused={isVideoPaused}
       />
     </div>
-  );
+);
 }
