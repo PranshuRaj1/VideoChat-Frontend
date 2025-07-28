@@ -141,13 +141,13 @@ export default function MeetPage() {
   }, []);
 
   const consumeNewProducer = useCallback(async (producerId: string, producerUsername: string) => {
-    console.log(`[CONSUME] 🕵️‍♂️ Attempting to consume producerId: ${producerId} from user: ${producerUsername}`);
+    console.log(`[CONSUME]  Attempting to consume producerId: ${producerId} from user: ${producerUsername}`);
     if (!deviceRef.current || !consumerTransportRef.current) {
-        console.error("[CONSUME] ❌ Device or consumer transport not ready.");
+        console.error("[CONSUME]  Device or consumer transport not ready.");
         return;
     }
     if (!deviceRef.current.loaded) {
-        console.error("[CONSUME] ❌ Device not loaded.");
+        console.error("[CONSUME]  Device not loaded.");
         return;
     }
 
@@ -156,12 +156,12 @@ export default function MeetPage() {
         remoteProducerId: producerId,
         remoteUsername: producerUsername,
     };
-    console.log("[CONSUME] ➡️ Emitting 'consume' with payload:", payload);
+    console.log("[CONSUME]  Emitting 'consume' with payload:", payload);
 
     socket.emit('consume', payload, async (params: any) => {
-        console.log("[CONSUME] ⬅️ Received response for 'consume':", params);
+        console.log("[CONSUME]  Received response for 'consume':", params);
         if (params.error) {
-            console.error('[CONSUME] ❌ Cannot consume:', params.error);
+            console.error('[CONSUME]  Cannot consume:', params.error);
             return;
         }
 
@@ -173,7 +173,7 @@ export default function MeetPage() {
                 rtpParameters: params.rtpParameters,
             });
             consumersRef.current.set(consumer.id, consumer);
-            console.log("[CONSUME] ✅ Consumer created:", consumer);
+            console.log("[CONSUME] Consumer created:", consumer);
 
             if (consumer.kind === 'video') {
               const { track } = consumer;
@@ -181,10 +181,10 @@ export default function MeetPage() {
               addParticipantVideo(producerUsername, consumer.id, remoteStream);
             }
 
-            console.log("[CONSUME] ➡️ Emitting 'consumer-resume' for consumerId:", consumer.id);
+            console.log("[CONSUME]  Emitting 'consumer-resume' for consumerId:", consumer.id);
             socket.emit('consumer-resume', { consumerId: consumer.id });
         } catch (e) {
-            console.error("[CONSUME] ❌ Error creating consumer on client:", e);
+            console.error("[CONSUME]  Error creating consumer on client:", e);
         }
     });
   }, [addParticipantVideo]);
@@ -195,17 +195,17 @@ export default function MeetPage() {
             console.log("Ignoring my own new producer notification.");
             return;
         }
-        console.log(`[EVENT] ⬅️ Received 'new-producer' from user: ${username}, producerId: ${producerId}`);
+        console.log(`[EVENT]  Received 'new-producer' from user: ${username}, producerId: ${producerId}`);
         consumeNewProducer(producerId, username);
     };
 
     const handlePeerLeft = ({ username }: { username: string }) => {
-        console.log(`[EVENT] ⬅️ Received 'peer-left' for user: ${username}`);
+        console.log(`[EVENT] ⬅ Received 'peer-left' for user: ${username}`);
         removeParticipantVideo(username);
     };
 
     const handleMeetingEnded = () => {
-        console.log("[EVENT] ⬅️ Received 'meeting-ended'");
+        console.log("[EVENT] ⬅ Received 'meeting-ended'");
         alert("The meeting has ended.");
         setIsInRoom(false);
         setVideos([]);
@@ -223,7 +223,7 @@ export default function MeetPage() {
   }, [consumeNewProducer, removeParticipantVideo]);
 
   const handleJoinRoom = useCallback(async (joinUsername: string, joinRoomId: string, isCreator: boolean) => {
-    console.log(`[JOIN] 🕵️‍♂️ Attempting to join room: ${joinRoomId} as ${joinUsername}`);
+    console.log(`[JOIN] Attempting to join room: ${joinRoomId} as ${joinUsername}`);
     localUsernameRef.current = joinUsername;
     setUsername(joinUsername);
     setRoomId(joinRoomId);
@@ -233,9 +233,9 @@ export default function MeetPage() {
     addParticipantVideo(joinUsername, 'local', stream);
     setIsInRoom(true);
 
-    console.log("[JOIN] ➡️ Emitting 'joinRoom'");
+    console.log("[JOIN]  Emitting 'joinRoom'");
     socket.emit('joinRoom', { username: joinUsername, roomId: joinRoomId, isCreator }, async (response) => {
-        console.log("[JOIN] ⬅️ Received response for 'joinRoom':", response);
+        console.log("[JOIN]  Received response for 'joinRoom':", response);
         if (response.error) {
             alert(response.error);
             setIsInRoom(false);
@@ -243,58 +243,58 @@ export default function MeetPage() {
         }
 
         const device = new Device();
-        console.log("[JOIN] ⚙️ Loading mediasoup device with router capabilities...");
+        console.log("[JOIN]  Loading mediasoup device with router capabilities...");
         await device.load({ routerRtpCapabilities: response.rtpCapabilities });
         deviceRef.current = device;
-        console.log("[JOIN] ✅ Device loaded.");
+        console.log("[JOIN]  Device loaded.");
 
-        console.log("[JOIN] ➡️ Emitting 'createWebRTCTransport'");
+        console.log("[JOIN]  Emitting 'createWebRTCTransport'");
         socket.emit('createWebRTCTransport', async (transportRes) => {
-            console.log("[JOIN] ⬅️ Received response for 'createWebRTCTransport':", transportRes);
+            console.log("[JOIN]  Received response for 'createWebRTCTransport':", transportRes);
             if (transportRes.error) {
                 console.error(transportRes.error);
                 return;
             }
 
             // Create Send Transport
-            console.log("[PRODUCER] ⚙️ Creating send transport...");
+            console.log("[PRODUCER]  Creating send transport...");
             const sendTransport = device.createSendTransport(transportRes.producer);
             sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-                console.log("[PRODUCER] ➡️ 'connect' event on send transport. Emitting 'transport-connect'");
+                console.log("[PRODUCER]  'connect' event on send transport. Emitting 'transport-connect'");
                 socket.emit('transport-connect', { dtlsParameters });
                 callback();
             });
             sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
-                console.log(`[PRODUCER] ➡️ 'produce' event for kind: ${kind}. Emitting 'transport-produce'`);
+                console.log(`[PRODUCER]  'produce' event for kind: ${kind}. Emitting 'transport-produce'`);
                 socket.emit('transport-produce', { kind, rtpParameters, appData: { ...appData, username: joinUsername } }, (res) => {
-                    console.log(`[PRODUCER] ⬅️ Received response for 'transport-produce' with producer ID: ${res.id}`);
+                    console.log(`[PRODUCER]  Received response for 'transport-produce' with producer ID: ${res.id}`);
                     callback({ id: res.id });
                 });
             });
             producerTransportRef.current = sendTransport;
-            console.log("[PRODUCER] ✅ Send transport created.");
+            console.log("[PRODUCER]  Send transport created.");
 
             // Create Receive Transport
-            console.log("[CONSUMER] ⚙️ Creating receive transport...");
+            console.log("[CONSUMER]  Creating receive transport...");
             const recvTransport = device.createRecvTransport(transportRes.consumer);
             recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-                console.log("[CONSUMER] ➡️ 'connect' event on receive transport. Emitting 'transport-recv-connect'");
+                console.log("[CONSUMER]  'connect' event on receive transport. Emitting 'transport-recv-connect'");
                 socket.emit('transport-recv-connect', { transportId: recvTransport.id, dtlsParameters });
                 callback();
             });
             consumerTransportRef.current = recvTransport;
-            console.log("[CONSUMER] ✅ Receive transport created.");
+            console.log("[CONSUMER]  Receive transport created.");
 
             // Start producing local media
             const audioProducer = await sendTransport.produce({ track: stream.getAudioTracks()[0], appData: { username: joinUsername, mediaType: 'audio' } });
             audioProducerRef.current = audioProducer;
             const videoProducer = await sendTransport.produce({ track: stream.getVideoTracks()[0], appData: { username: joinUsername, mediaType: 'video' } });
             videoProducerRef.current = videoProducer;
-            console.log("[PRODUCER] ✅ Audio and video producers created locally.");
+            console.log("[PRODUCER]  Audio and video producers created locally.");
 
             // Consume existing producers
             if (response.existingProducers && response.existingProducers.length > 0) {
-                console.log(`[JOIN] 🕵️‍♂️ Found ${response.existingProducers.length} existing producers. Consuming them now.`);
+                console.log(`[JOIN]  Found ${response.existingProducers.length} existing producers. Consuming them now.`);
                 for (const producer of response.existingProducers) {
                     await consumeNewProducer(producer.producerId, producer.username);
                 }
